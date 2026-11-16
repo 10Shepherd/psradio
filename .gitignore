@@ -4,3 +4,6 @@ node_modules/
 # run-time state: holds player licence identifiers, never commit it
 data/state.json
 data/state.corrupt.json
+
+# offline test suite, not part of the shipped app
+tests/
