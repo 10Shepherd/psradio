@@ -1,0 +1,12 @@
+{
+  "name": "psradio-tests",
+  "private": true,
+  "description": "Offline checks for the psradio FiveM resource",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "devDependencies": {
+    "fengari": "^0.1.4",
+    "luaparse": "^0.3.1"
+  }
+}

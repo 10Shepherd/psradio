@@ -1,0 +1,6 @@
+# developer tools for the offline tests (restore with: cd tests && npm install)
+node_modules/
+
+# run-time state: holds player licence identifiers, never commit it
+data/state.json
+data/state.corrupt.json

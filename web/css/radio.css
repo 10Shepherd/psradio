@@ -1,0 +1,185 @@
+:root {
+  --body: #1d2024;
+  --body-edge: #2c3036;
+  --key: #2f343b;
+  --key-text: #e7eaee;
+  --lcd-bg: #b9d2b4;
+  --lcd-ink: #10210f;
+  --lcd-off: #2a3329;
+  --accent: #f28c28;
+  --tx: #e5372b;
+  --rx: #f2b01e;
+  --focus: #6cb8ff;
+  --unit: clamp(12px, 1.9vh, 20px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: var(--unit);
+  user-select: none;
+}
+
+[hidden] { display: none !important; }
+
+.radio {
+  position: fixed;
+  right: 2vw;
+  bottom: 3vh;
+  width: 17em;
+  padding: 1em 1em 1.2em;
+  background: linear-gradient(160deg, var(--body-edge), var(--body) 55%);
+  border: 0.15em solid #0d0f11;
+  border-radius: 1.4em 1.4em 1em 1em;
+  box-shadow: 0 0.6em 1.6em rgba(0, 0, 0, 0.55);
+  color: var(--key-text);
+}
+
+.antenna {
+  position: absolute;
+  left: 1.6em;
+  bottom: 100%;
+  width: 1.1em;
+  height: 9em;
+  background: linear-gradient(90deg, #101214, #2a2e33 50%, #101214);
+  border-radius: 0.5em 0.5em 0 0;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.8em;
+}
+
+.vol { display: flex; gap: 0.3em; margin-left: auto; }
+
+button {
+  font: inherit;
+  color: var(--key-text);
+  background: var(--key);
+  border: 0.1em solid #0d0f11;
+  cursor: pointer;
+}
+
+button:focus-visible { outline: 0.18em solid var(--focus); outline-offset: 0.12em; }
+button:active { filter: brightness(1.3); }
+
+.btn-round {
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.btn-round[aria-pressed="true"] { color: #7be07b; }
+
+.btn-small {
+  min-width: 2.2em;
+  height: 2.2em;
+  border-radius: 0.5em;
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.led {
+  width: 1.4em;
+  height: 0.6em;
+  border-radius: 0.3em;
+  background: #3a3320;
+}
+
+.led.tx { background: var(--tx); box-shadow: 0 0 0.6em var(--tx); }
+.led.rx { background: var(--rx); box-shadow: 0 0 0.6em var(--rx); }
+
+.lcd {
+  background: var(--lcd-bg);
+  color: var(--lcd-ink);
+  border: 0.2em solid #0d0f11;
+  border-radius: 0.5em;
+  padding: 0.4em 0.6em 0;
+  min-height: 9.6em;
+  display: flex;
+  flex-direction: column;
+}
+
+.lcd.off { background: var(--lcd-off); }
+.lcd.off > * { visibility: hidden; }
+
+.lcd-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  font-weight: 600;
+  min-height: 1.3em;
+}
+
+.lcd-zone { text-align: center; font-size: 1.15em; font-weight: 600; min-height: 1.4em; }
+
+.lcd-chan {
+  text-align: center;
+  font-size: 1.9em;
+  font-weight: 700;
+  line-height: 1.2;
+  min-height: 1.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lcd-msg {
+  text-align: center;
+  font-size: 1em;
+  font-weight: 600;
+  min-height: 1.5em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lcd-msg.alert { background: var(--tx); color: #fff; border-radius: 0.2em; }
+
+.lcd-soft {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: auto -0.6em 0;
+  background: var(--lcd-ink);
+  color: var(--lcd-bg);
+  text-align: center;
+  font-size: 0.95em;
+  font-weight: 600;
+  padding: 0.15em 0;
+}
+
+.softkeys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5em;
+  margin: 0.7em 0;
+}
+
+.btn-soft { height: 1.8em; border-radius: 0.5em; }
+
+.btn-ptt {
+  width: 100%;
+  height: 2.8em;
+  border-radius: 0.6em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.btn-ptt.active { background: var(--tx); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .led, .btn-ptt { transition: background 80ms linear; }
+}
+
+@media (max-height: 520px) {
+  .antenna { height: 4em; }
+}

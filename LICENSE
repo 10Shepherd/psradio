@@ -1,0 +1,50 @@
+# psradio - Source-Available Licence, No Modification
+
+Copyright (c) 2026 10shepherd. All rights reserved.
+
+This software is published so that it can be read and used as it is. It is
+not open source.
+
+1. What you may do
+
+   a. Download and read the source code.
+   b. Run unmodified copies on FiveM servers that you operate.
+   c. Edit `config.lua` and add or edit files in `locales/` to configure and
+   translate the software for your own server. These edits are the only
+   changes permitted.
+
+2. What you may not do without prior written permission from the copyright
+   holder
+
+   a. Modify, adapt, translate or otherwise change any other part of the
+   software.
+   b. Create derivative works, or use any part of the software's code,
+   styles or documentation in another project.
+   c. Redistribute, re-upload, sublicense, sell, rent or lease the software
+   or any part of it, modified or not, on any platform or in any bundle.
+   d. Remove or alter this licence or any copyright notice.
+
+3. Forks on GitHub
+
+   GitHub's Terms of Service let users view and fork public repositories on
+   GitHub. Such a fork grants no rights beyond this licence: the forked copy
+   may not be modified, built upon or distributed elsewhere.
+
+4. Contributions
+
+   Issues and bug reports are welcome. By submitting a suggested change you
+   agree that the copyright holder may use it in the software without
+   restriction or obligation.
+
+5. Termination
+
+   Your rights under this licence end automatically if you break any of its
+   terms. You must then stop using the software and delete your copies.
+
+6. No warranty
+
+   THE SOFTWARE IS IN DEVELOPMENT AND IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+   ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR
+   OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
