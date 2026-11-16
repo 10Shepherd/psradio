@@ -1,32 +1,27 @@
 # Testing psradio
 
-## Offline checks (no game needed)
+## Offline checks
 
-Needs Node.js 18 or newer.
-
-```
-cd psradio/tests
-npm install
-npm test
-```
-
-This runs, and must end with `ALL CHECKS PASSED`:
+The maintainer keeps an offline test suite that is **not published in this
+repository**, so you cannot run it from a clone. It checks:
 
 1. **Lua syntax** for every `.lua` file.
 2. **JavaScript syntax** for every NUI script.
 3. **Manifest check** — every file named in `fxmanifest.lua` exists.
 4. **Server behaviour** — the real server scripts, loaded in manifest order
-   into a Lua VM with stand-ins for the FiveM natives (`tests/stubs.lua`).
-   `tests/server_spec.lua` covers config validation, access by ACE and by job
-   and rank, channel selection, transmit grant and denial, packet relay,
-   spoofing / replay / malformed input, all three rate limits, time-out and
-   stall, disconnect, access loss mid-transmission, shutdown, callsigns, and
-   the state file (corrupt, newer version, migration).
+   into a Lua VM with stand-ins for the FiveM natives. It covers config
+   validation, access by ACE and by job and rank, channel selection, transmit
+   grant and denial, packet relay, spoofing / replay / malformed input, all
+   three rate limits, time-out and stall, disconnect, access loss
+   mid-transmission, shutdown, callsigns, and the state file (corrupt, newer
+   version, migration).
 5. **Codecs** — packet framing, hostile input, and an ADPCM encode/decode round trip.
 
 What these do **not** cover: `client/main.lua` (syntax only), the page's
 microphone path, and anything that depends on the real FiveM runtime. The Lua
 VM is 5.3 while FiveM runs 5.4; the scripts avoid 5.4-only syntax.
+
+The in-game cases below need nothing but the published resource.
 
 ## In-game test cases
 

@@ -6,7 +6,8 @@ Legend: **Done** (written, offline-tested) · **Experimental** (written, needs
 in-game proof) · **Optional** · **Not yet** (planned; phase in brackets).
 
 No item on this page has been verified in a running FiveM server yet. "Done"
-means the logic passes the offline suite in `tests/`.
+means the logic passes the maintainer's offline test suite, which is not
+published in this repository.
 
 ## Done
 
@@ -28,7 +29,7 @@ means the logic passes the offline suite in `tests/`.
 - Clean handling of disconnect, resource stop/restart, access loss
 - Locale file for every player-facing string
 - Server exports and events for other resources
-- Offline test suite
+- Offline test suite (kept by the maintainer, not published)
 
 ## Experimental — written, must be proven in game
 

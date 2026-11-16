@@ -13,8 +13,8 @@ This is **phase 1** of a phased build. It is a working foundation, not the full
 feature list — see [docs/STATUS.md](docs/STATUS.md) for exactly what is done,
 and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design and the plan.
 
-> **Not yet run in a live game.** The server logic is covered by an offline test
-> suite and the radio page was exercised in desktop Chrome, but nobody has
+> **Not yet run in a live game.** The server logic is covered by the maintainer's
+> offline test suite (not published in this repository) and the radio page was exercised in desktop Chrome, but nobody has
 > loaded this resource in FiveM yet. Work through
 > [docs/TESTING.md](docs/TESTING.md) before putting it on a public server.
 
@@ -30,22 +30,21 @@ and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design and the plan.
 
 1. Copy the `psradio` folder into your server's `resources` directory. Keep the
    folder name `psradio`.
-2. You may delete `psradio/tests` on a production server; the game never loads it.
-3. Add to `server.cfg`, after your framework:
+2. Add to `server.cfg`, after your framework:
 
    ```cfg
    ensure psradio
    ```
 
-4. Make sure the server process can write to `psradio/data/`.
-5. Give players a radio — either map jobs in `config.lua` (step below) or grant
+3. Make sure the server process can write to `psradio/data/`.
+4. Give players a radio — either map jobs in `config.lua` (step below) or grant
    a codeplug by ACE:
 
    ```cfg
    add_ace group.police psradio.codeplug.leo allow
    ```
 
-6. Start the server. The console prints one line such as
+5. Start the server. The console prints one line such as
    `[psradio] [info] started: 3 zones, 3 codeplugs, framework=qb-core, state=new`,
    plus a warning for anything in the config it had to skip.
 
@@ -151,10 +150,10 @@ Copy `locales/en.json` to `locales/<code>.json`, translate the values, and set
 
 ## AI assistance
 
-Most of the code, tests and documentation in this repository were written with
+Most of the code and documentation in this repository were written with
 an AI coding assistant (Claude, by Anthropic), working from the maintainer's
 feature brief and direction. Treat it accordingly: the server logic passes the
-offline test suite, but nothing has been proven in a live game yet, and review
+maintainer's offline test suite, but nothing has been proven in a live game yet, and review
 before production use is recommended. Bug reports and corrections are welcome.
 
 ## Licence
@@ -167,6 +166,4 @@ full terms are in [LICENSE](LICENSE).
 ## Licences of what is inside
 
 All code, styles and tones here are original to this project. Opus encoding
-uses the game browser's built-in encoder; nothing third-party is bundled. The
-`tests/` folder downloads two MIT-licensed developer tools (`fengari`,
-`luaparse`) when you run `npm install` there.
+uses the game browser's built-in encoder; nothing third-party is bundled.

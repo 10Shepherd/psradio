@@ -12,7 +12,7 @@
  * Not included: IMBE / AMBE (no vetted redistributable implementation is
  * bundled, so none is claimed) and Codec 2 (would need a WebAssembly build).
  *
- * This file also runs under Node for the unit tests (tests/codecs.test.js).
+ * This file also runs under Node for the offline unit tests.
  */
 (function (root) {
   'use strict';

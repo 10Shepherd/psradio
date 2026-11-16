@@ -83,15 +83,14 @@ psradio/
 │        └─ tones.js           synthesised tones
 ├─ locales/en.json         every player-facing string
 ├─ data/                   state.json is written here at run time
-├─ docs/                   ARCHITECTURE, PROTOCOL, TESTING, STATUS
-└─ tests/                  offline test suite (not loaded by the game)
+└─ docs/                   ARCHITECTURE, PROTOCOL, TESTING, STATUS
 ```
 
 Later phases add files; they do not restructure this tree.
 
 ## 3. Feature and dependency matrix
 
-Status words: **Done** = implemented and covered by offline tests; **Planned** =
+Status words: **Done** = implemented and covered by the maintainer's offline tests; **Planned** =
 designed, not written; **Optional** = off by default / needs something extra.
 "In-game" verification is tracked separately in STATUS.md.
 
@@ -129,7 +128,6 @@ designed, not written; **Optional** = off by default / needs something extra.
 | OneSync                                                    | on                            | Recommended now; **required** from phase 5 (positions) |
 | qbx_core / qb-core / es_extended                           | current                       | Optional — job mapping                                 |
 | ND_Core 2.x / ox_core                                      | current                       | Optional — adapters are best-effort, see §5            |
-| Node.js 18+                                                | —                             | Only to run `tests/` on a developer machine            |
 
 No account, licence key, port forward or external service is needed for phase 1.
 
