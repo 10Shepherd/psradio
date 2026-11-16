@@ -9,7 +9,7 @@ today is listed in [STATUS.md](STATUS.md).
 
 ## 1. Architecture in one page
 
-```
+```text
  Player's game                                   FiveM server
 ┌──────────────────────────────────────┐        ┌───────────────────────────────┐
 │ NUI page (web/)                      │        │ server/*.lua                  │
@@ -52,7 +52,7 @@ Full message list: [PROTOCOL.md](PROTOCOL.md).
 
 ## 2. Directory tree
 
-```
+```text
 psradio/
 ├─ fxmanifest.lua          resource manifest (load order lives here)
 ├─ config.lua              THE configuration file (server-only)
@@ -252,15 +252,15 @@ always send its own microphone audio modified. Neither is preventable.
 
 ## 7. Phased plan
 
-| Phase                              | Contents                                                                                                                                    | Review point                                              |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| **1 — Foundation (current)**       | Config, permissions, codeplugs, conventional channels, voice transport with codec abstraction, PTT, basic radio, persistence, offline tests | In-game verification of microphone, Opus and key bindings |
-| 2 — Radio feel                     | Radio models as skins, softkey menus, per-player settings dialog, full tone set, tunable FX chain, battery, bonk override, animations       | Usability on foot and in vehicles                         |
-| 3 — Channel features               | Scan lists and priorities, nuisance delete, trunked talkgroups, persistent patches, emergency profiles, man-down                            | Behaviour under simultaneous traffic                      |
-| 4 — Dispatch and admin             | Web panels on the FiveM HTTP port, authentication, live-editable settings, transmission log and replay, alerts, announcement groups         | Security review of the HTTP surface                       |
-| 5 — World                          | Signal towers and degradation, geo-zones, GPS blips, 3D audio and earbuds, vehicle radio, placeable speakers                                | OneSync behaviour, performance with many listeners        |
-| 6 — 911 and integrations           | 911 queue and private call voice, phone/CAD/MDT adapters or stubs, REST API, optional Discord OAuth                                         | Abuse limits, integration contracts                       |
-| 7 — Optional extras                | Desktop companion, federation                                                                                                               | Go / no-go on each after a feasibility spike              |
+| Phase                        | Contents                                                                                                                                    | Review point                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **1 — Foundation (current)** | Config, permissions, codeplugs, conventional channels, voice transport with codec abstraction, PTT, basic radio, persistence, offline tests | In-game verification of microphone, Opus and key bindings |
+| 2 — Radio feel               | Radio models as skins, softkey menus, per-player settings dialog, full tone set, tunable FX chain, battery, bonk override, animations       | Usability on foot and in vehicles                         |
+| 3 — Channel features         | Scan lists and priorities, nuisance delete, trunked talkgroups, persistent patches, emergency profiles, man-down                            | Behaviour under simultaneous traffic                      |
+| 4 — Dispatch and admin       | Web panels on the FiveM HTTP port, authentication, live-editable settings, transmission log and replay, alerts, announcement groups         | Security review of the HTTP surface                       |
+| 5 — World                    | Signal towers and degradation, geo-zones, GPS blips, 3D audio and earbuds, vehicle radio, placeable speakers                                | OneSync behaviour, performance with many listeners        |
+| 6 — 911 and integrations     | 911 queue and private call voice, phone/CAD/MDT adapters or stubs, REST API, optional Discord OAuth                                         | Abuse limits, integration contracts                       |
+| 7 — Optional extras          | Desktop companion, federation                                                                                                               | Go / no-go on each after a feasibility spike              |
 
 Each phase is a set of new modules plus small, listed changes to existing
 ones, released with its own tests and an updated STATUS.md.

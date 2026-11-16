@@ -48,7 +48,7 @@ Reasons are locale keys: `radio_off`, `no_channel`, `tx_denied`, `tx_busy`,
 
 `payload` is base64 of one or more records:
 
-```
+```text
 [length: uint16 big-endian][codec packet: length bytes] ...
 ```
 
