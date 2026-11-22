@@ -1,6 +1,7 @@
 -- Server entry point: start-up, net event handlers, commands, exports.
 local Ev = PSR.Event
 local Registry, Store, Framework, Sessions, Voice = PSR.Registry, PSR.Store, PSR.Framework, PSR.Sessions, PSR.Voice
+local Settings, Battery = PSR.Settings, PSR.Battery
 
 local RESOURCE = GetCurrentResourceName()
 
@@ -28,9 +29,10 @@ if Config.locale ~= 'en' and PSR.isId(Config.locale) then
     end
 end
 
-PSR.log('info', 'started: %d zones, %d codeplugs, framework=%s%s, state=%s',
-    #Registry.zones, #Registry.codeplugOrder, Framework.name,
-    Framework.verified and '' or ' (unverified adapter)', storeStatus)
+PSR.log('info', 'started: %d zones, %d codeplugs, %d models, framework=%s%s, state=%s, battery=%s',
+    #Registry.zones, #Registry.codeplugOrder, #Registry.modelOrder, Framework.name,
+    Framework.verified and '' or ' (unverified adapter)', storeStatus,
+    Registry.battery.enabled and ('on, %d min'):format(Registry.battery.capacityMinutes) or 'off')
 
 -- ---------------------------------------------------------------- helpers
 local function now() return GetGameTimer() end
@@ -41,7 +43,12 @@ local function statePayload(sess)
         channelId = sess.channelId,
         callsign = sess.record.callsign,
         unitId = sess.record.unitId,
+        model = sess.model,
     }
+end
+
+local function pushSettings(sess)
+    TriggerClientEvent(Ev.clSettings, sess.src, sess.record.settings)
 end
 
 local function pushState(sess)
@@ -81,7 +88,9 @@ local function applyAccess(sess, codeplugId)
         sess.power = false
     end
     Sessions.sync(sess)
+    local modelChanged = Sessions.syncModel(sess)
     TriggerClientEvent(Ev.clAccess, sess.src, Registry.accessView(codeplugId) or false)
+    if modelChanged then pushSettings(sess) end
     pushState(sess)
     return true
 end
@@ -108,6 +117,10 @@ onNet(Ev.svReady, function(version, caps)
         sess.channelId = last
     end
     Sessions.sync(sess)
+    Sessions.syncModel(sess)
+    Battery.prime(sess, now())
+    sess.overrideOfferedAt = nil
+    sess.overrideOfferedFor = nil
     sess.ready = true
 
     local voice = Registry.voice
@@ -118,7 +131,14 @@ onNet(Ev.svReady, function(version, caps)
             ptt = type(Config.keys) == 'table' and Config.keys.ptt or 'B',
             toggle = type(Config.keys) == 'table' and Config.keys.toggle or 'F6',
         },
-        voice = { txTimeoutSeconds = voice.txTimeoutSeconds },
+        voice = {
+            txTimeoutSeconds = voice.txTimeoutSeconds,
+            overrideWindowSeconds = voice.overrideWindowMs / 1000,
+        },
+        audio = Registry.audio,
+        animations = Registry.animations,
+        battery = Battery.initPayload(sess),
+        settings = sess.record.settings,
         access = Registry.accessView(sess.codeplugId) or false,
         state = statePayload(sess),
     })
@@ -129,6 +149,10 @@ onNet(Ev.svPower, function(on)
     if not sess or type(on) ~= 'boolean' then return end
     if on and not sess.codeplugId then
         notify(sess.src, 'no_access')
+        return
+    end
+    if on and not Battery.canPowerOn(sess) then
+        notify(sess.src, 'batt_dead')
         return
     end
     if not on then Voice.stop(sess.src, 'power') end
@@ -163,12 +187,12 @@ onNet(Ev.svSelect, function(channelId)
     Voice.lateJoin(sess)
 end)
 
-onNet(Ev.svTxStart, function(clientSeq)
+onNet(Ev.svTxStart, function(clientSeq, override)
     local sess = guard(source)
     if not sess or not PSR.isInt(clientSeq, 0, 2147483646) then return end
-    local ok, result = Voice.start(sess, now())
+    local ok, result, canOverride = Voice.start(sess, now(), override == true)
     if not ok then
-        TriggerClientEvent(Ev.clTxDenied, sess.src, clientSeq, result)
+        TriggerClientEvent(Ev.clTxDenied, sess.src, clientSeq, result, canOverride == true)
         return
     end
     local voice = Registry.voice
@@ -192,6 +216,20 @@ onNet(Ev.svTxStop, function()
     if sess then Voice.stop(sess.src, 'released') end
 end)
 
+-- A partial table of settings from the radio's own menu. Unknown keys and
+-- invalid values are dropped; the whole validated set is sent back, so the
+-- radio shows what the server stored rather than what it asked for.
+onNet(Ev.svSettings, function(partial)
+    local sess = guard(source)
+    if not sess or type(partial) ~= 'table' then return end
+    local merged, changed = Settings.apply(sess.record.settings, partial)
+    sess.record.settings = merged
+    if changed then Store.touch() end
+    local modelChanged = Sessions.syncModel(sess)
+    pushSettings(sess)
+    if modelChanged then pushState(sess) end
+end)
+
 -- ---------------------------------------------------------------- lifecycle
 AddEventHandler('playerDropped', function()
     local src = source
@@ -209,6 +247,14 @@ CreateThread(function()
     while true do
         Wait(250)
         Voice.tick(now())
+    end
+end)
+
+-- Battery: a slow timer is enough, the model is time-based rather than per-tick.
+CreateThread(function()
+    while true do
+        Wait(5000)
+        Battery.tick(now(), pushState)
     end
 end)
 
@@ -254,6 +300,30 @@ RegisterCommand('callsign', function(src, args)
     end
 end, false)
 
+-- /radiobattery <percent> [playerId] — set a battery level (ACE: command.radiobattery)
+RegisterCommand('radiobattery', function(src, args)
+    local percent = tonumber(args[1])
+    local target = tonumber(args[2]) or (src ~= 0 and src or nil)
+    local function reply(message)
+        if src == 0 then print('[psradio] ' .. message) else notify(src, 'generic', message) end
+    end
+    if not percent or percent < 0 or percent > 100 or not target then
+        reply('usage: radiobattery <0-100> [playerId]')
+        return
+    end
+    if not Battery.enabled() then
+        reply('battery is switched off in config.lua')
+        return
+    end
+    local sess = Sessions.get(target)
+    if not sess or not sess.ready then
+        reply('player ' .. tostring(target) .. ' has no radio loaded')
+        return
+    end
+    Battery.set(sess, percent)
+    reply(('battery of player %d set to %d%%'):format(target, math.floor(percent + 0.5)))
+end, true)
+
 -- ---------------------------------------------------------------- exports
 -- Documented in README.md -> "Exports and events".
 exports('getPlayerChannel', function(src)
@@ -268,6 +338,32 @@ end)
 
 exports('isTransmitting', function(src)
     return Voice.bySrc[tonumber(src)] ~= nil
+end)
+
+exports('getPlayerModel', function(src)
+    local sess = Sessions.get(tonumber(src))
+    return sess and sess.model or nil
+end)
+
+-- A copy of a player's radio settings; changing it does not change theirs.
+exports('getPlayerSettings', function(src)
+    local sess = Sessions.get(tonumber(src))
+    if not sess then return nil end
+    local out = {}
+    for k, v in pairs(sess.record.settings) do out[k] = v end
+    return out
+end)
+
+exports('getBattery', function(src)
+    local sess = Sessions.get(tonumber(src))
+    return sess and Battery.get(sess) or nil
+end)
+
+-- For a charger, a battery swap at the station, or an admin menu.
+exports('setBattery', function(src, percent)
+    local sess = Sessions.get(tonumber(src))
+    if not sess or not sess.ready then return false end
+    return Battery.set(sess, tonumber(percent))
 end)
 
 -- Re-evaluates one player's codeplug now instead of at the next poll.

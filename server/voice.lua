@@ -26,8 +26,16 @@ local function eachListener(tx, fn)
     end
 end
 
--- Returns true and the transmission, or false and a reason for the radio.
-function Voice.start(sess, now)
+--[[
+    Asks for the channel. Returns true and the transmission, or false, a reason
+    and whether the radio should offer an override.
+
+    A busy channel refuses everyone, including a supervisor: the supervisor is
+    told they may override, and only a second press inside the override window
+    (`override` true) cuts the other unit off. That way nobody takes a channel
+    by leaning on the key.
+]]
+function Voice.start(sess, now, override)
     if not sess.power then return false, 'radio_off' end
     if not sess.channelId or sess.memberOf ~= sess.channelId then return false, 'no_channel' end
     if not Sessions.canTransmit(sess, sess.channelId) then return false, 'tx_denied' end
@@ -36,8 +44,24 @@ function Voice.start(sess, now)
     local current = Voice.active[sess.channelId]
     if current then
         if current.src == sess.src then return true, current end
-        return false, 'tx_busy'        -- half-duplex: the channel has a talker
+        local mayOverride = Sessions.canOverride(sess)
+        local offered = sess.overrideOfferedAt
+        -- The offer belongs to the channel that made it. A supervisor refused
+        -- on one channel who switches to another inside the window starts over
+        -- there, instead of cutting the new channel off with no warning press.
+        local inWindow = offered ~= nil
+            and sess.overrideOfferedFor == sess.channelId
+            and (now - offered) <= Registry.voice.overrideWindowMs
+        if not (override == true and mayOverride and inWindow) then
+            -- half-duplex: the channel has a talker
+            sess.overrideOfferedAt = mayOverride and now or nil
+            sess.overrideOfferedFor = mayOverride and sess.channelId or nil
+            return false, 'tx_busy', mayOverride
+        end
+        Voice.stop(current.src, 'overridden')
     end
+    sess.overrideOfferedAt = nil
+    sess.overrideOfferedFor = nil
 
     local channel = Registry.channels[sess.channelId]
     local voice = Registry.voice

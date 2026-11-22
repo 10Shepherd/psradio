@@ -1,10 +1,13 @@
 --[[
     File-based persistence: data/state.json inside the resource folder.
 
-    Schema (version 1):
-      { version = 1,
+    Schema (version 2):
+      { version = 2,
         nextUnitId = <int>,
-        players = { [identifier] = { unitId = <int>, callsign = <string?>, lastChannel = <string?> } },
+        players = { [identifier] = {
+            unitId = <int>, callsign = <string?>, lastChannel = <string?>,
+            settings = { <per-player settings, see server/settings.lua> },
+            battery = <number 0..100> } },
         patches = {} }            -- reserved for the patching phase
 
     Versioning: `version` is bumped whenever the shape changes, and a function
@@ -14,15 +17,44 @@
 local Store = { state = nil, dirty = false, readOnly = false }
 PSR.Store = Store
 
-local CURRENT_VERSION = 1
+local CURRENT_VERSION = 2
 local FILE = 'data/state.json'
 
 -- migrations[n](state) -> state at version n+1
 Store.migrations = {}
+
+-- 1 -> 2: phase 2 gave every player settings and a battery. Existing players
+-- keep their unit id, callsign and last channel, start on the configured
+-- defaults and get a full battery.
+Store.migrations[1] = function(state)
+    if type(state.players) == 'table' then
+        for _, rec in pairs(state.players) do
+            if type(rec) == 'table' then
+                if type(rec.settings) ~= 'table' then rec.settings = {} end
+                rec.battery = 100
+            end
+        end
+    end
+    return state
+end
 Store.currentVersion = CURRENT_VERSION
 
 local function fresh()
     return { version = CURRENT_VERSION, nextUnitId = 1, players = {}, patches = {} }
+end
+
+local function sanitizeRecord(rec)
+    if rec.callsign ~= nil and not PSR.isCallsign(rec.callsign) then rec.callsign = nil end
+    if rec.lastChannel ~= nil and not PSR.isId(rec.lastChannel) then rec.lastChannel = nil end
+    if type(rec.settings) ~= 'table' then rec.settings = {} end
+    -- The settings themselves are checked per player on join, against the
+    -- current config, so a setting that was dropped from config.lua disappears
+    -- on its own instead of being rejected here.
+    if type(rec.battery) ~= 'number' or rec.battery ~= rec.battery then
+        rec.battery = 100
+    else
+        rec.battery = math.max(0, math.min(100, rec.battery))
+    end
 end
 
 local function sanitize(state)
@@ -33,8 +65,7 @@ local function sanitize(state)
         if type(id) ~= 'string' or type(rec) ~= 'table' or not PSR.isInt(rec.unitId, 1, 2 ^ 31) then
             state.players[id] = nil
         else
-            if rec.callsign ~= nil and not PSR.isCallsign(rec.callsign) then rec.callsign = nil end
-            if rec.lastChannel ~= nil and not PSR.isId(rec.lastChannel) then rec.lastChannel = nil end
+            sanitizeRecord(rec)
             if rec.unitId >= state.nextUnitId then state.nextUnitId = rec.unitId + 1 end
         end
     end
@@ -110,7 +141,7 @@ function Store.player(identifier)
     local state = Store.state
     local rec = identifier and state.players[identifier]
     if rec then return rec end
-    rec = { unitId = state.nextUnitId }
+    rec = { unitId = state.nextUnitId, settings = {}, battery = 100 }
     state.nextUnitId = state.nextUnitId + 1
     if identifier then state.players[identifier] = rec end
     Store.dirty = true

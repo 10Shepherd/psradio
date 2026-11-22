@@ -1,0 +1,125 @@
+/*
+ * Radio model skins. The markup is the same for every model; the skin changes
+ * the shape, the colours and where the parts sit. `data-skin` comes from the
+ * player's model (Config.models -> skin), `data-keys` from its softkey count.
+ *
+ *   handheld  the portable: tall, antenna, display over the keys (the default)
+ *   mobile    a dash-mounted set: wide, no antenna, fist-mic key on the right
+ *   console   a desk set: wider still, lighter body, large display
+ *
+ * Only looks live here. Everything a model can do is the same.
+ */
+
+/* ------------------------------------------------------------ handheld */
+.radio[data-skin="handheld"] {
+  /* the phase 1 look, which radio.css already describes */
+  width: 17em;
+}
+
+/* a 4-key portable needs slightly tighter key labels to fit */
+.radio[data-skin="handheld"][data-keys="4"] .btn-soft,
+.radio[data-skin="handheld"][data-keys="4"] .lcd-soft {
+  font-size: 0.85em;
+}
+
+/* ------------------------------------------------------------ mobile */
+.radio[data-skin="mobile"] {
+  --body: #15181c;
+  --body-edge: #23272d;
+  --lcd-bg: #9fc8d8;
+  --lcd-ink: #0a1d26;
+  width: 25em;
+  border-radius: 0.6em;
+  padding: 0.9em;
+  display: grid;
+  grid-template-columns: 1fr 7.5em;
+  grid-template-areas:
+    "top   top"
+    "lcd   ptt"
+    "softs ptt"
+    "knobs ptt";
+  gap: 0.5em 0.8em;
+}
+
+/* a set bolted to a dashboard has no whip antenna */
+.radio[data-skin="mobile"] .antenna { display: none; }
+
+.radio[data-skin="mobile"] .top { grid-area: top; margin: 0; }
+.radio[data-skin="mobile"] .lcd { grid-area: lcd; min-height: 7.4em; }
+.radio[data-skin="mobile"] .softkeys { grid-area: softs; margin: 0; }
+.radio[data-skin="mobile"] .knobs { grid-area: knobs; margin: 0; }
+
+/* the transmit key sits on the right, where the fist mic would hang */
+.radio[data-skin="mobile"] .btn-ptt {
+  grid-area: ptt;
+  width: 100%;
+  height: 100%;
+  min-height: 3.2em;
+}
+
+.radio[data-skin="mobile"] .lcd-chan { font-size: 2.1em; }
+
+/* ------------------------------------------------------------ console */
+.radio[data-skin="console"] {
+  --body: #2b2f36;
+  --body-edge: #3b414a;
+  --key: #434a54;
+  --lcd-bg: #d7e4cf;
+  --lcd-ink: #0d1a0c;
+  width: 28em;
+  border-radius: 0.5em;
+  padding: 1em 1.2em;
+  display: grid;
+  grid-template-columns: 1fr 10em;
+  grid-template-areas:
+    "top   top"
+    "lcd   knobs"
+    "lcd   ptt"
+    "softs softs";
+  gap: 0.6em 1em;
+}
+
+.radio[data-skin="console"] .antenna { display: none; }
+.radio[data-skin="console"] .top { grid-area: top; margin: 0; }
+
+.radio[data-skin="console"] .lcd {
+  grid-area: lcd;
+  min-height: 10em;
+  font-size: 1.05em;
+}
+
+.radio[data-skin="console"] .softkeys { grid-area: softs; margin: 0; }
+.radio[data-skin="console"] .knobs { grid-area: knobs; margin: 0; align-self: start; }
+
+.radio[data-skin="console"] .btn-ptt {
+  grid-area: ptt;
+  height: 3.2em;
+  align-self: end;
+}
+
+.radio[data-skin="console"] .lcd-chan { font-size: 2.4em; }
+.radio[data-skin="console"] .lcd-panel { font-size: 0.95em; }
+
+/* A 4-key radio carries MENU on its fourth softkey, so the knob key would say
+   the same thing twice. The knob key stays for 3-key models. */
+.radio[data-keys="4"] .btn-menu { display: none; }
+
+/* ------------------------------------------------------------ narrow screens */
+@media (max-width: 900px) {
+  .radio[data-skin="mobile"],
+  .radio[data-skin="console"] {
+    width: 20em;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "lcd"
+      "softs"
+      "knobs"
+      "ptt";
+  }
+
+  .radio[data-skin="mobile"] .btn-ptt,
+  .radio[data-skin="console"] .btn-ptt {
+    height: 2.8em;
+  }
+}

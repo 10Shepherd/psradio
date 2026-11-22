@@ -3,7 +3,7 @@
 local Sessions = { bySrc = {}, members = {} }
 PSR.Sessions = Sessions
 
-local Registry, Store, Framework = PSR.Registry, PSR.Store, PSR.Framework
+local Registry, Store, Framework, Settings = PSR.Registry, PSR.Store, PSR.Framework, PSR.Settings
 
 local function identifierOf(src)
     local id = GetPlayerIdentifierByType(tostring(src), 'license')
@@ -16,15 +16,24 @@ function Sessions.get(src) return Sessions.bySrc[src] end
 function Sessions.create(src)
     local sec = Config.security or {}
     local identifier = identifierOf(src)
+    local record = Store.player(identifier)
+    -- Settings are normalized once, here, against the config as it is now: a
+    -- setting that was removed from config.lua falls back to its default and a
+    -- value that is no longer valid is replaced instead of being refused later.
+    record.settings = Settings.normalize(record.settings, Registry.defaultSettings)
+
     local sess = {
         src = src,
         identifier = identifier,
-        record = Store.player(identifier),
+        record = record,
         ready = false,
         power = false,
         channelId = nil,
         memberOf = nil,
         codeplugId = nil,
+        model = nil,          -- resolved from the settings and the codeplug
+        overrideOfferedAt = nil,   -- when the busy channel last offered an override
+        overrideOfferedFor = nil,  -- the channel that offer was made on
         caps = { opus = false },
         control = PSR.newBucket(tonumber(sec.controlRate) or 10, tonumber(sec.controlBurst) or 30),
         txStart = PSR.newBucket(tonumber(sec.txStartRate) or 2, tonumber(sec.txStartBurst) or 4),
@@ -93,4 +102,27 @@ end
 function Sessions.canTransmit(sess, channelId)
     local cp = Registry.codeplugs[sess.codeplugId]
     return cp ~= nil and cp.tx[channelId] == true
+end
+
+-- A supervisor codeplug may cut into a busy channel (see Config.voice).
+function Sessions.canOverride(sess)
+    if not Registry.voice.allowOverride then return false end
+    local cp = Registry.codeplugs[sess.codeplugId]
+    return cp ~= nil and cp.supervisor == true
+end
+
+-- Keeps sess.model in step with the player's choice and their codeplug, and
+-- writes the resolved model back into the saved settings so the radio opens on
+-- the same model next time. Returns true when the model changed.
+function Sessions.syncModel(sess)
+    local chosen = Settings.resolveModel(sess.record.settings.model, sess.codeplugId, sess.model)
+    -- Write the resolved model back first, so a player who asked for a model
+    -- their codeplug does not allow is told which one they actually have.
+    if chosen and sess.record.settings.model ~= chosen then
+        sess.record.settings.model = chosen
+        Store.touch()
+    end
+    if sess.model == chosen then return false end
+    sess.model = chosen
+    return true
 end

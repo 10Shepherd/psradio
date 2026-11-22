@@ -1,8 +1,10 @@
 # psradio — architecture and plan
 
-psradio is an original, standalone public-safety radio for FiveM. It was written
-from a feature brief; it contains no third-party code, artwork, sounds or
-branding, and claims no compatibility with any proprietary radio protocol.
+psradio is an original public-safety radio for FiveM. It was written from a
+feature brief; it contains no third-party code, artwork, sounds or branding, and
+claims no compatibility with any proprietary radio protocol. Two open-source
+resources do work it does not duplicate: ox_lib draws the settings menu, and
+scully_emotemenu plays the transmit animations.
 
 This document covers the design that every phase builds on. What is built
 today is listed in [STATUS.md](STATUS.md).
@@ -62,24 +64,32 @@ psradio/
 │  └─ util.lua             validators, logger
 ├─ server/
 │  ├─ ratelimit.lua        token bucket
+│  ├─ settings.lua         per-player settings: spec, validation, defaults
 │  ├─ store.lua            data/state.json, versioning, migrations
-│  ├─ registry.lua         config validation -> zones/channels/codeplugs/jobs
+│  ├─ registry.lua         config validation -> zones/channels/codeplugs/jobs/models
 │  ├─ framework.lua        job adapters (QBX, QBCore, ESX, ND_Core, ox_core)
 │  ├─ sessions.lua         per-player session, access resolution, membership
-│  ├─ voice.lua            transmit grant, packet relay, time-outs
+│  ├─ battery.lua          drain / charge model, warnings, flat-battery shutdown
+│  ├─ voice.lua            transmit grant, packet relay, time-outs, override
 │  └─ main.lua             net events, commands, exports, lifecycle
 ├─ client/
+│  ├─ anim.lua             transmit animation styles via scully_emotemenu (cosmetic, local)
+│  ├─ settings_menu.lua    the /radiosetting menu (ox_lib)
 │  └─ main.lua             key bindings, NUI focus, server<->NUI relay
 ├─ web/                    NUI page (plain HTML/CSS/JS, no build step)
 │  ├─ index.html
-│  ├─ css/radio.css
+│  ├─ css/
+│  │  ├─ radio.css             shared layout and display
+│  │  └─ models.css            one block per model skin
 │  └─ js/
 │     ├─ app.js            display + controls + tx/rx orchestration
+│     ├─ ui/
+│     │  └─ menu.js            softkey pages and the key stack
 │     └─ audio/
 │        ├─ codecs.js          codec registry: Opus, ADPCM, packet framing
 │        ├─ capture.js         microphone -> 20 ms frames
 │        ├─ capture-worklet.js audio-thread framing
-│        ├─ playback.js        jitter buffer + digital/analog filter chains
+│        ├─ playback.js        jitter buffer + tunable receive chain
 │        └─ tones.js           synthesised tones
 ├─ locales/en.json         every player-facing string
 ├─ data/                   state.json is written here at run time
@@ -94,31 +104,35 @@ Status words: **Done** = implemented and covered by the maintainer's offline tes
 designed, not written; **Optional** = off by default / needs something extra.
 "In-game" verification is tracked separately in STATUS.md.
 
-| Feature                                                                                          | Phase | Status                                               | Needs                                                          |
-| ------------------------------------------------------------------------------------------------ | ----- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| Conventional channels, zones                                                                     | 1     | Done                                                 | —                                                              |
-| Codeplugs, job + rank mapping, ACE grants                                                        | 1     | Done                                                 | A framework for job mapping; ACE works standalone              |
-| Own voice transport, PTT, half-duplex, TX time-out                                               | 1     | Done                                                 | Player allows NUI microphone access                            |
-| Codec abstraction, Opus + ADPCM, per-channel codec                                               | 1     | Done                                                 | Opus needs WebCodecs in the game's browser; ADPCM always works |
-| Digital / analog receive sound per channel                                                       | 1     | Done (basic filter chains)                           | —                                                              |
-| Callsigns, unit ids, persistence, migrations                                                     | 1     | Done                                                 | Writable `data/` folder                                        |
-| One radio model, basic display, tones                                                            | 1     | Done                                                 | —                                                              |
-| More radio models, softkey menus, settings dialog, full tone set, FX tuning, battery, animations | 2     | Planned                                              | —                                                              |
-| Scanning, priorities, nuisance delete, talkback                                                  | 3     | Planned                                              | —                                                              |
-| Trunked talkgroups                                                                               | 3     | Planned                                              | —                                                              |
-| Persistent patching (conventional only)                                                          | 3     | Planned                                              | —                                                              |
-| Emergency profiles (alarm / call / silent), man-down                                             | 3     | Planned                                              | Auto-transmit stays opt-in per player                          |
-| Dispatch web panel, admin panel, live settings                                                   | 4     | Planned                                              | HTTP handler on the FiveM port; browser mic needs HTTPS        |
-| Transmission history / replay                                                                    | 4     | Planned                                              | Retention + privacy settings; stores encoded audio             |
-| Alerts, announcement groups                                                                      | 4     | Planned                                              | —                                                              |
-| Signal towers, bars, degradation                                                                 | 5     | Planned                                              | OneSync (server-side positions)                                |
-| Geo-zone channel switching, GPS blips                                                            | 5     | Planned                                              | OneSync                                                        |
-| 3D radio audio, earbuds, vehicle radio, speakers                                                 | 5     | Planned                                              | OneSync; per-listener panning in NUI                           |
-| 911 queue with private voice                                                                     | 6     | Planned, off by default                              | —                                                              |
-| Phone / CAD / MDT adapters                                                                       | 6     | Extension stubs unless a documented API is confirmed | The other resource                                             |
-| REST API, Discord OAuth for panels                                                               | 6     | Optional                                             | Discord application credentials in convars                     |
-| Windows desktop companion                                                                        | 7     | Optional, feasibility not yet confirmed              | Electron build + code signing                                  |
-| Server-to-server federation                                                                      | 7     | Optional                                             | Authenticated transport; not designed yet                      |
+| Feature                                                                  | Phase | Status                                               | Needs                                                          |
+| ------------------------------------------------------------------------ | ----- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| Conventional channels, zones                                             | 1     | Done                                                 | —                                                              |
+| Codeplugs, job + rank mapping, ACE grants                                | 1     | Done                                                 | A framework for job mapping; ACE works standalone              |
+| Own voice transport, PTT, half-duplex, TX time-out                       | 1     | Done                                                 | Player allows NUI microphone access                            |
+| Codec abstraction, Opus + ADPCM, per-channel codec                       | 1     | Done                                                 | Opus needs WebCodecs in the game's browser; ADPCM always works |
+| Digital / analog receive sound per channel                               | 1     | Done, tunable from `Config.audio` in phase 2         | —                                                              |
+| Callsigns, unit ids, persistence, migrations                             | 1     | Done                                                 | Writable `data/` folder                                        |
+| One radio model, basic display, tones                                    | 1     | Done                                                 | —                                                              |
+| Radio models as skins, softkey menus, per-player settings, full tone set | 2     | Done                                                 | —                                                              |
+| Tunable receive chain (band, soft clip, noise floor, squelch tail)       | 2     | Done                                                 | —                                                              |
+| Battery: drain, charge, warnings, flat-battery shutdown                  | 2     | Done, on by default                                  | Writable `data/` folder                                        |
+| Supervisor transmit override ("bonk override")                           | 2     | Done                                                 | A codeplug with `supervisor = true`                            |
+| Transmit animation and radio prop                                        | 2     | Done                                                 | The animation dictionary and prop model exist in the game      |
+| Scanning, priorities, nuisance delete, talkback                          | 3     | Planned                                              | —                                                              |
+| Trunked talkgroups                                                       | 3     | Planned                                              | —                                                              |
+| Persistent patching (conventional only)                                  | 3     | Planned                                              | —                                                              |
+| Emergency profiles (alarm / call / silent), man-down                     | 3     | Planned                                              | Auto-transmit stays opt-in per player                          |
+| Dispatch web panel, admin panel, live settings                           | 4     | Planned                                              | HTTP handler on the FiveM port; browser mic needs HTTPS        |
+| Transmission history / replay                                            | 4     | Planned                                              | Retention + privacy settings; stores encoded audio             |
+| Alerts, announcement groups                                              | 4     | Planned                                              | —                                                              |
+| Signal towers, bars, degradation                                         | 5     | Planned                                              | OneSync (server-side positions)                                |
+| Geo-zone channel switching, GPS blips                                    | 5     | Planned                                              | OneSync                                                        |
+| 3D radio audio, earbuds, vehicle radio, speakers                         | 5     | Planned                                              | OneSync; per-listener panning in NUI                           |
+| 911 queue with private voice                                             | 6     | Planned, off by default                              | —                                                              |
+| Phone / CAD / MDT adapters                                               | 6     | Extension stubs unless a documented API is confirmed | The other resource                                             |
+| REST API, Discord OAuth for panels                                       | 6     | Optional                                             | Discord application credentials in convars                     |
+| Windows desktop companion                                                | 7     | Optional, feasibility not yet confirmed              | Electron build + code signing                                  |
+| Server-to-server federation                                              | 7     | Optional                                             | Authenticated transport; not designed yet                      |
 
 ### External dependencies
 
@@ -126,10 +140,15 @@ designed, not written; **Optional** = off by default / needs something extra.
 | ---------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
 | FiveM server artifact with `cerulean` manifest and Lua 5.4 | any current recommended build | Yes                                                    |
 | OneSync                                                    | on                            | Recommended now; **required** from phase 5 (positions) |
+| ox_lib                                                     | current                       | Yes — the `/radiosetting` menu                         |
+| scully_emotemenu                                           | 2.x                           | Yes for animations — it plays them; drop it from `dependencies` to run without any |
 | qbx_core / qb-core / es_extended                           | current                       | Optional — job mapping                                 |
 | ND_Core 2.x / ox_core                                      | current                       | Optional — adapters are best-effort, see §5            |
 
-No account, licence key, port forward or external service is needed for phase 1.
+No account, licence key, port forward or external service is needed. ox_lib and
+scully_emotemenu are ordinary open-source FiveM resources: psradio calls
+ox_lib's menu for the settings UI and asks scully_emotemenu to play or cancel
+an emote while transmitting, and contains no code from either.
 
 ## 4. Voice transport, codecs and licensing
 
@@ -252,15 +271,15 @@ always send its own microphone audio modified. Neither is preventable.
 
 ## 7. Phased plan
 
-| Phase                        | Contents                                                                                                                                    | Review point                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| **1 — Foundation (current)** | Config, permissions, codeplugs, conventional channels, voice transport with codec abstraction, PTT, basic radio, persistence, offline tests | In-game verification of microphone, Opus and key bindings |
-| 2 — Radio feel               | Radio models as skins, softkey menus, per-player settings dialog, full tone set, tunable FX chain, battery, bonk override, animations       | Usability on foot and in vehicles                         |
-| 3 — Channel features         | Scan lists and priorities, nuisance delete, trunked talkgroups, persistent patches, emergency profiles, man-down                            | Behaviour under simultaneous traffic                      |
-| 4 — Dispatch and admin       | Web panels on the FiveM HTTP port, authentication, live-editable settings, transmission log and replay, alerts, announcement groups         | Security review of the HTTP surface                       |
-| 5 — World                    | Signal towers and degradation, geo-zones, GPS blips, 3D audio and earbuds, vehicle radio, placeable speakers                                | OneSync behaviour, performance with many listeners        |
-| 6 — 911 and integrations     | 911 queue and private call voice, phone/CAD/MDT adapters or stubs, REST API, optional Discord OAuth                                         | Abuse limits, integration contracts                       |
-| 7 — Optional extras          | Desktop companion, federation                                                                                                               | Go / no-go on each after a feasibility spike              |
+| Phase                        | Contents                                                                                                                                    | Review point                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1 — Foundation               | Config, permissions, codeplugs, conventional channels, voice transport with codec abstraction, PTT, basic radio, persistence, offline tests | Passed in game on 2026-11-17                       |
+| **2 — Radio feel (current)** | Radio models as skins, softkey menus, per-player settings in an ox_lib `/radiosetting` menu, full tone set, tunable FX chain, battery, bonk override, animations       | Passed in game on 2026-11-22                       |
+| 3 — Channel features         | Scan lists and priorities, nuisance delete, trunked talkgroups, persistent patches, emergency profiles, man-down                            | Behaviour under simultaneous traffic               |
+| 4 — Dispatch and admin       | Web panels on the FiveM HTTP port, authentication, live-editable settings, transmission log and replay, alerts, announcement groups         | Security review of the HTTP surface                |
+| 5 — World                    | Signal towers and degradation, geo-zones, GPS blips, 3D audio and earbuds, vehicle radio, placeable speakers                                | OneSync behaviour, performance with many listeners |
+| 6 — 911 and integrations     | 911 queue and private call voice, phone/CAD/MDT adapters or stubs, REST API, optional Discord OAuth                                         | Abuse limits, integration contracts                |
+| 7 — Optional extras          | Desktop companion, federation                                                                                                               | Go / no-go on each after a feasibility spike       |
 
 Each phase is a set of new modules plus small, listed changes to existing
 ones, released with its own tests and an updated STATUS.md.
